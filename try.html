@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Care Connect</title>
+    <style>
+        /* General styles */
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: white;
+            position: relative;
+        }
+
+        /* Phone frame */
+        .phone-outline {
+            width: 360px;
+            height: 680px;
+            background: white;
+            border: 2px solid black;
+            border-radius: 40px;
+            box-shadow: 0px 15px 30px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+            box-sizing: border-box;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Main content container */
+        .container {
+            width: 100%;
+            height: calc(100% - 40px);
+            /* Subtract height of top bar */
+            overflow-y: auto;
+            /* Makes the content scrollable */
+            padding: 10px;
+            box-sizing: border-box;
+        }
+
+        /* Sections (home, health profile, etc.) */
+        .container>div {
+            display: none;
+            /* Hide all sections by default */
+        }
+
+        .container>div.show {
+            display: block;
+            /* Show the active section */
+        }
+
+        /* Top bar */
+        .top-bar {
+            width: 90%;
+            height: 30px;
+            background-color: white;
+            color: #003366;
+            font-size: 18px;
+            font-weight: bold;
+            justify-content: flex-start;
+            align-items: center;
+            border-radius: 10px;
+            padding: 0 10px;
+            position: absolute;
+            top: 8.4px;
+            left: 3;
+            z-index: 10;
+            /* Ensure top bar stays above other elements */
+        }
+
+        /* Menu Icon */
+        .menu-icon {
+            font-size: 24px;
+            cursor: pointer;
+            margin-left: 8px;
+        }
+
+        /* Map container */
+        .map-container {
+            width: 95%;
+            height: 60%;
+            background-color: white;
+            border: 2px solid blue;
+            border-radius: 20px;
+            margin-top: 40px;
+            overflow: hidden;
+            z-index: 1;
+            /* Ensure map stays behind the menu */
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Directions container */
+        .directions-container {
+            width: 95%;
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            font-size: 14px;
+            max-height: 55px;
+            overflow-y: auto;
+        }
+
+        /* Emergency button */
+        .button-container {
+            position: absolute;
+            bottom: 20px;
+            width: 80%;
+            display: flex;
+            justify-content: center;
+        }
+
+        .emergency-button {
+            margin-top: 240px;
+            padding: 10px 20px;
+            background-color: red;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .emergency-button:hover {
+            background-color: darkred;
+        }
+
+        /* Hide text over map */
+        .leaflet-routing-container {
+            color: transparent !important;
+        }
+
+        /* Hospital name container */
+        .hospital-name {
+            width: 95%;
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #e6f7ff;
+            border: 1px solid #0073e6;
+            border-radius: 10px;
+            font-size: 16px;
+            text-align: center;
+            font-weight: bold;
+            color: #003366;
+        }
+
+        /* Menu styles */
+        .menu {
+            position: absolute;
+            top: 0;
+            left: -230px;
+            /* Start off-screen */
+            width: 250px;
+            height: 370px;
+            background: #003366;
+            border: 1px solid #0073e6;
+            border-radius: 10px;
+            color: white;
+            padding: 1rem;
+            display: none;
+            flex-direction: column;
+            z-index: 20;
+            /* Ensure the menu overlays above the map */
+        }
+
+        .menu a {
+            color: white;
+            margin: 1rem 0;
+            text-decoration: none;
+            font-size: 18px;
+        }
+
+        .menu a:hover {
+            color: #0056b3;
+        }
+
+        .menu.show {
+            display: flex;
+            left: 0;
+            top: 40px;
+        }
+    </style>
+
+    <!-- Leaflet and Routing Libraries -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
+</head>
+
+<body>
+    <!-- Phone-like UI -->
+    <div class="phone-outline">
+        <div class="top-bar">
+            <span class="menu-icon" onclick="toggleMenu()">&#9776;</span>
+            <span>Care Connect</span>
+        </div>
+
+        <!-- Menu -->
+        <div class="menu" id="menu">
+            <a href="#" onclick="showSection('home')">Home</a>
+            <a href="#" onclick="showSection('health-profile')">Health Profile</a>
+            <a href="#" onclick="showSection('emergency-contacts')">Emergency Contacts</a>
+            <a href="#" onclick="showSection('request-assistance')">Request Assistance</a>
+            <a href="#" onclick="showSection('about')">About</a>
+        </div>
+
+        <!-- Map Container -->
+        <div class="map-container">
+            <div id="map"></div>
+        </div>
+        <div class="hospital-name" id="hospitalName">
+            <!-- Hospital name will be displayed here -->
+        </div>
+
+        <div class="directions-container" id="directions">
+            <!-- Directions will be displayed here -->
+        </div>
+
+        <div class="button-container">
+            <button class="emergency-button" id="emergencyBtn">Emergency Help</button>
+        </div>
+    </div>
+
+    <!-- Main Content of Care Connect App -->
+    <div class="container" id="main-content" style="display:none;">
+        <div id="home">
+            <h2>Welcome to Care Connect!</h2>
+            <p>Your emergency healthcare assistant at your fingertips.</p>
+            <button class="button" onclick="alert('Get Started functionality here!')">Get Started</button>
+        </div>
+
+        <div id="health-profile" class="hidden">
+            <h2>Health Profile</h2>
+            <p><strong>Name:</strong> John Doe</p>
+            <p><strong>Age:</strong> 70</p>
+            <p><strong>Blood Type:</strong> O+</p>
+            <p><strong>Medical Conditions:</strong></p>
+            <ul>
+                <li>Hypertension</li>
+                <li>Type 2 Diabetes</li>
+                <li>Osteoarthritis</li>
+                <li>Hearing Loss</li>
+            </ul>
+            <p><strong>Medications:</strong></p>
+            <ul>
+                <li>Metformin (for Diabetes)</li>
+                <li>Lisinopril (for Hypertension)</li>
+            </ul>
+            <button class="button" onclick="alert('Edit Health Profile functionality here!')">Edit Profile</button>
+        </div>
+
+        <div id="emergency-contacts" class="hidden">
+            <h2>Emergency Contacts</h2>
+            <ul>
+                <li>John Doe (Spouse) - 123-456-7890</li>
+                <li>Jane Doe (Daughter) - 987-654-3210</li>
+                <li>Dr. Sarah Williams (Cardiologist) - 555-123-4567</li>
+                <li>Neighbor - 111-222-3333</li>
+            </ul>
+        </div>
+
+        <div id="request-assistance" class="hidden">
+            <h2>Request Assistance</h2>
+            <p><strong>Emergency Symptoms Checklist:</strong></p>
+            <ul>
+                <li>Chest Pain or Pressure</li>
+                <li>Shortness of Breath</li>
+                <li>Severe Headache</li>
+                <li>Dizziness or Confusion</li>
+            </ul>
+            <button class="button" onclick="alert('Share Location functionality here!')">Share My Location</button>
+        </div>
+
+        <div id="about" class="hidden">
+            <h2>About Care Connect</h2>
+            <p>Care Connect is your personalized emergency healthcare assistant, designed to help you during critical
+                situations.</p>
+        </div>
+    </div>
+
+    <!-- Script -->
+    <script>
+        function toggleMenu() {
+            const menu = document.getElementById('menu');
+            menu.classList.toggle('show');
+        }
+
+        function showSection(sectionId) {
+            // Hide all sections first
+            const sections = document.querySelectorAll('.container > div');
+            sections.forEach(section => {
+                section.classList.remove('show');
+            });
+
+            // Show the selected section
+            const selectedSection = document.getElementById(sectionId);
+            selectedSection.classList.add('show');
+
+            // Ensure the main content container is visible
+            document.getElementById('main-content').style.display = 'block';
+            toggleMenu(); // Close the menu after selection
+        }
+
+        let map, userMarker, hospitalMarker, routeControl;
+
+        function initializeMap() {
+            map = L.map('map').setView([0, 0], 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(map);
+        }
+
+        initializeMap();
+
+        function getUserLocation() {
+            return new Promise((resolve, reject) => {
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                            resolve([position.coords.latitude, position.coords.longitude]);
+                        },
+                        (error) => {
+                            reject("Error fetching location: " + error.message);
+                        }
+                    );
+                } else {
+                    reject("Geolocation is not supported by this browser.");
+                }
+            });
+        }
+
+        async function findNearestHospital(userCoords) {
+            const radiusStep = 2000;
+            let radius = 3000;
+            let hospitals = [];
+
+            while (hospitals.length === 0) {
+                const url = `https://overpass-api.de/api/interpreter?data=[out:json];node["amenity"="hospital"](around:${radius},${userCoords[0]},${userCoords[1]});out;`;
+                const response = await fetch(url);
+                const data = await response.json();
+                hospitals = data.elements;
+                if (hospitals.length === 0) radius += radiusStep;
+
+                if (radius > 10000) {
+                    throw new Error("No hospitals found within 10 km.");
+                }
+            }
+
+            return hospitals[0];
+        }
+
+        function displayRoute(userCoords, hospitalCoords, hospitalName) {
+            if (routeControl) map.removeControl(routeControl);
+            if (userMarker) map.removeLayer(userMarker);
+            if (hospitalMarker) map.removeLayer(hospitalMarker);
+
+            userMarker = L.marker(userCoords).addTo(map).bindPopup("You are here").openPopup();
+            hospitalMarker = L.marker(hospitalCoords).addTo(map).bindPopup("Nearest Hospital").openPopup();
+
+            routeControl = L.Routing.control({
+                waypoints: [
+                    L.latLng(userCoords),
+                    L.latLng(hospitalCoords)
+                ],
+                routeWhileDragging: true,
+                addWaypoints: false,
+                lineOptions: {
+                    styles: [{ color: 'red', weight: 2 }]
+                },
+                createMarker: function () { return null; },
+                show: false
+            }).on('routesfound', function (e) {
+                const directionsContainer = document.getElementById('directions');
+                const instructions = e.routes[0].instructions
+                    .map(instruction => instruction.text)
+                    .join('<br>');
+                directionsContainer.innerHTML = instructions;
+            }).addTo(map);
+
+            map.fitBounds([userCoords, hospitalCoords]);
+            // Update the hospital name on the page
+            const hospitalNameElement = document.getElementById('hospitalName');
+            hospitalNameElement.innerHTML = `Nearest Hospital: ${hospitalName}`;
+        }
+
+        document.getElementById('emergencyBtn').addEventListener('click', async () => {
+            try {
+                const userCoords = await getUserLocation();
+                alert("Fetching nearest hospital...");
+                const hospital = await findNearestHospital(userCoords);
+                const hospitalCoords = [hospital.lat, hospital.lon];
+                const hospitalName = hospital.tags.name || "Unnamed Hospital";
+                displayRoute(userCoords, hospitalCoords);
+            } catch (error) {
+                alert(error.message);
+            }
+        });
+    </script>
+</body>
+
+</html>
