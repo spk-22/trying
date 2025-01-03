@@ -1,0 +1,187 @@
+ /* General styles */
+ body {
+     margin: 0;
+     font-family: Arial, sans-serif;
+     display: flex;
+     justify-content: center;
+     align-items: center;
+     height: 100vh;
+     background-color: white;
+     position: relative;
+ }
+
+ /* Phone frame */
+ .phone-outline {
+     width: 360px;
+     height: 680px;
+     background: white;
+     border: 2px solid black;
+     border-radius: 40px;
+     box-shadow: 0px 15px 30px rgba(0, 0, 0, 0.3);
+     display: flex;
+     flex-direction: column;
+     align-items: center;
+     padding: 10px;
+     box-sizing: border-box;
+     position: relative;
+     overflow: hidden;
+ }
+
+ /* Main content container */
+ .container {
+     width: 100%;
+     height: calc(100% - 40px);
+     /* Subtract height of top bar */
+     overflow-y: auto;
+     /* Makes the content scrollable */
+     padding: 10px;
+     box-sizing: border-box;
+ }
+
+ /* Sections (home, health profile, etc.) */
+ .container>div {
+     display: none;
+     /* Hide all sections by default */
+ }
+
+ .container>div.show {
+     display: block;
+     /* Show the active section */
+ }
+
+ /* Top bar */
+ .top-bar {
+     width: 90%;
+     height: 30px;
+     background-color: white;
+     color: #003366;
+     font-size: 18px;
+     font-weight: bold;
+     justify-content: flex-start;
+     align-items: center;
+     border-radius: 10px;
+     padding: 0 10px;
+     position: absolute;
+     top: 8.4px;
+     left: 3;
+     z-index: 10;
+     /* Ensure top bar stays above other elements */
+ }
+
+ /* Menu Icon */
+ .menu-icon {
+     font-size: 24px;
+     cursor: pointer;
+     margin-left: 8px;
+ }
+
+ /* Map container */
+ .map-container {
+     width: 95%;
+     height: 60%;
+     background-color: white;
+     border: 2px solid blue;
+     border-radius: 20px;
+     margin-top: 40px;
+     overflow: hidden;
+     z-index: 1;
+     /* Ensure map stays behind the menu */
+ }
+
+ #map {
+     width: 100%;
+     height: 100%;
+ }
+
+ /* Directions container */
+ .directions-container {
+     width: 95%;
+     margin-top: 10px;
+     padding: 10px;
+     background-color: #f9f9f9;
+     border: 1px solid #ccc;
+     border-radius: 10px;
+     font-size: 14px;
+     max-height: 55px;
+     overflow-y: auto;
+ }
+
+ /* Emergency button */
+ .button-container {
+     position: absolute;
+     bottom: 20px;
+     width: 80%;
+     display: flex;
+     justify-content: center;
+ }
+
+ .emergency-button {
+     margin-top: 240px;
+     padding: 10px 20px;
+     background-color: red;
+     color: white;
+     border: none;
+     border-radius: 5px;
+     font-size: 16px;
+     cursor: pointer;
+     transition: background-color 0.3s ease;
+ }
+
+ .emergency-button:hover {
+     background-color: darkred;
+ }
+
+ /* Hide text over map */
+ .leaflet-routing-container {
+     color: transparent !important;
+ }
+
+ /* Hospital name container */
+ .hospital-name {
+     width: 95%;
+     margin-top: 10px;
+     padding: 10px;
+     background-color: #e6f7ff;
+     border: 1px solid #0073e6;
+     border-radius: 10px;
+     font-size: 16px;
+     text-align: center;
+     font-weight: bold;
+     color: #003366;
+ }
+
+ /* Menu styles */
+ .menu {
+     position: absolute;
+     top: 0;
+     left: -230px;
+     /* Start off-screen */
+     width: 250px;
+     height: 370px;
+     background: #003366;
+     border: 1px solid #0073e6;
+     border-radius: 10px;
+     color: white;
+     padding: 1rem;
+     display: none;
+     flex-direction: column;
+     z-index: 20;
+     /* Ensure the menu overlays above the map */
+ }
+
+ .menu a {
+     color: white;
+     margin: 1rem 0;
+     text-decoration: none;
+     font-size: 18px;
+ }
+
+ .menu a:hover {
+     color: #0056b3;
+ }
+
+ .menu.show {
+     display: flex;
+     left: 0;
+     top: 40px;
+ }

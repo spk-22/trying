@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Care Connect</title>
+    <style>
+
+    </style>
+
+    <!-- Leaflet and Routing Libraries -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.js"></script>
+</head>
+
+<body>
+    <!-- Phone-like UI -->
+    <div class="phone-outline">
+        <div class="top-bar">
+            <span class="menu-icon" onclick="toggleMenu()">&#9776;</span>
+            <span>Care Connect</span>
+        </div>
+
+        <!-- Menu -->
+        <div class="menu" id="menu">
+            <a href="#" onclick="showSection('home')">Home</a>
+            <a href="#" onclick="showSection('health-profile')">Health Profile</a>
+            <a href="#" onclick="showSection('emergency-contacts')">Emergency Contacts</a>
+            <a href="#" onclick="showSection('request-assistance')">Request Assistance</a>
+            <a href="#" onclick="showSection('about')">About</a>
+        </div>
+
+        <!-- Map Container -->
+        <div class="map-container">
+            <div id="map"></div>
+        </div>
+        <div class="hospital-name" id="hospitalName">
+            <!-- Hospital name will be displayed here -->
+        </div>
+
+        <div class="directions-container" id="directions">
+            <!-- Directions will be displayed here -->
+        </div>
+
+        <div class="button-container">
+            <button class="emergency-button" id="emergencyBtn">Emergency Help</button>
+        </div>
+    </div>
+
+    <!-- Main Content of Care Connect App -->
+    <div class="container" id="main-content" style="display:none;">
+        <div id="home">
+            <h2>Welcome to Care Connect!</h2>
+            <p>Your emergency healthcare assistant at your fingertips.</p>
+            <button class="button" onclick="alert('Get Started functionality here!')">Get Started</button>
+        </div>
+
+        <div id="health-profile" class="hidden">
+            <h2>Health Profile</h2>
+            <p><strong>Name:</strong> John Doe</p>
+            <p><strong>Age:</strong> 70</p>
+            <p><strong>Blood Type:</strong> O+</p>
+            <p><strong>Medical Conditions:</strong></p>
+            <ul>
+                <li>Hypertension</li>
+                <li>Type 2 Diabetes</li>
+                <li>Osteoarthritis</li>
+                <li>Hearing Loss</li>
+            </ul>
+            <p><strong>Medications:</strong></p>
+            <ul>
+                <li>Metformin (for Diabetes)</li>
+                <li>Lisinopril (for Hypertension)</li>
+            </ul>
+            <button class="button" onclick="alert('Edit Health Profile functionality here!')">Edit Profile</button>
+        </div>
+
+        <div id="emergency-contacts" class="hidden">
+            <h2>Emergency Contacts</h2>
+            <ul>
+                <li>John Doe (Spouse) - 123-456-7890</li>
+                <li>Jane Doe (Daughter) - 987-654-3210</li>
+                <li>Dr. Sarah Williams (Cardiologist) - 555-123-4567</li>
+                <li>Neighbor - 111-222-3333</li>
+            </ul>
+        </div>
+
+        <div id="request-assistance" class="hidden">
+            <h2>Request Assistance</h2>
+            <p><strong>Emergency Symptoms Checklist:</strong></p>
+            <ul>
+                <li>Chest Pain or Pressure</li>
+                <li>Shortness of Breath</li>
+                <li>Severe Headache</li>
+                <li>Dizziness or Confusion</li>
+            </ul>
+            <button class="button" onclick="alert('Share Location functionality here!')">Share My Location</button>
+        </div>
+
+        <div id="about" class="hidden">
+            <h2>About Care Connect</h2>
+            <p>Care Connect is your personalized emergency healthcare assistant, designed to help you during critical
+                situations.</p>
+        </div>
+    </div>
+
+    <!-- Script -->
+    <script>
+        function toggleMenu() {
+            const menu = document.getElementById('menu');
+            menu.classList.toggle('show');
+        }
+
+        function showSection(sectionId) {
+            // Hide all sections first
+            const sections = document.querySelectorAll('.container > div');
+            sections.forEach(section => {
+                section.classList.remove('show');
+            });
+
+            // Show the selected section
+            const selectedSection = document.getElementById(sectionId);
+            selectedSection.classList.add('show');
+
+            // Ensure the main content container is visible
+            document.getElementById('main-content').style.display = 'block';
+            toggleMenu(); // Close the menu after selection
+        }
+
+        let map, userMarker, hospitalMarker, routeControl;
+
+        function initializeMap() {
+            map = L.map('map').setView([0, 0], 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(map);
+        }
+
+        initializeMap();
+
+        function getUserLocation() {
+            return new Promise((resolve, reject) => {
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                            resolve([position.coords.latitude, position.coords.longitude]);
+                        },
+                        (error) => {
+                            reject("Error fetching location: " + error.message);
+                        }
+                    );
+                } else {
+                    reject("Geolocation is not supported by this browser.");
+                }
+            });
+        }
+
+        async function findNearestHospital(userCoords) {
+            const radiusStep = 2000;
+            let radius = 3000;
+            let hospitals = [];
+
+            while (hospitals.length === 0) {
+                const url = `https://overpass-api.de/api/interpreter?data=[out:json];node["amenity"="hospital"](around:${radius},${userCoords[0]},${userCoords[1]});out;`;
+                const response = await fetch(url);
+                const data = await response.json();
+                hospitals = data.elements;
+                if (hospitals.length === 0) radius += radiusStep;
+
+                if (radius > 10000) {
+                    throw new Error("No hospitals found within 10 km.");
+                }
+            }
+
+            return hospitals[0];
+        }
+
+        function displayRoute(userCoords, hospitalCoords, hospitalName) {
+            if (routeControl) map.removeControl(routeControl);
+            if (userMarker) map.removeLayer(userMarker);
+            if (hospitalMarker) map.removeLayer(hospitalMarker);
+
+            userMarker = L.marker(userCoords).addTo(map).bindPopup("You are here").openPopup();
+            hospitalMarker = L.marker(hospitalCoords).addTo(map).bindPopup("Nearest Hospital").openPopup();
+
+            routeControl = L.Routing.control({
+                waypoints: [
+                    L.latLng(userCoords),
+                    L.latLng(hospitalCoords)
+                ],
+                routeWhileDragging: true,
+                addWaypoints: false,
+                lineOptions: {
+                    styles: [{ color: 'red', weight: 2 }]
+                },
+                createMarker: function () { return null; },
+                show: false
+            }).on('routesfound', function (e) {
+                const directionsContainer = document.getElementById('directions');
+                const instructions = e.routes[0].instructions
+                    .map(instruction => instruction.text)
+                    .join('<br>');
+                directionsContainer.innerHTML = instructions;
+            }).addTo(map);
+
+            map.fitBounds([userCoords, hospitalCoords]);
+            // Update the hospital name on the page
+            const hospitalNameElement = document.getElementById('hospitalName');
+            hospitalNameElement.innerHTML = `Nearest Hospital: ${hospitalName}`;
+        }
+
+        document.getElementById('emergencyBtn').addEventListener('click', async () => {
+            try {
+                const userCoords = await getUserLocation();
+                alert("Fetching nearest hospital...");
+                const hospital = await findNearestHospital(userCoords);
+                const hospitalCoords = [hospital.lat, hospital.lon];
+                const hospitalName = hospital.tags.name || "Unnamed Hospital";
+                displayRoute(userCoords, hospitalCoords);
+            } catch (error) {
+                alert(error.message);
+            }
+        });
+    </script>
+</body>
+
+</html>
